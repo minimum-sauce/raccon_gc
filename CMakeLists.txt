@@ -1,79 +1,49 @@
-# -----------------------------------------------------
-#   GENERAL SETTINGS
-# -----------------------------------------------------
-
-# We set the minimum version recuired of cmake to build as we have some functionality
-# not present in earlier versions of cmake
 cmake_minimum_required(VERSION 3.22)
-
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-# Creates a file describing the project structure so that the editor can find all the header and c files
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-# Information about the project
-project(
-    project
+project(racoonGC
     VERSION 0.1
-    DESCRIPTION "Garbage collector for C"
-    LANGUAGES C CXX)
+    DESCRIPTION "A garbage collector for C"
+    LANGUAGES C CXX
+)
 
+# For clang-tidy, since it needs a compilation database.
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Ensure that atleast std=c14 is used (nessecary for google test)
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED ON)
-# Ensure that std == c++ instead of std == g++
-set(CMAKE_C_EXTENSIONS OFF) 
+# Getting gtest
+include(FetchContent)
+FetchContent_Declare(googletest
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    GIT_TAG f8d7d77c06936315286eb55f8de22cd23c188571 # release-1.14
+)
 
-# Here we define all subdirectories that we use to build the project 
-# Note: All subdirectories must have their own CMakeLists.txt files defining how 
-# to build and execute that module as well as information about that module
-add_subdirectory(src/template)
-add_subdirectory(demo)
-# ....
-
-# OPTIONS: when building the build directory with cmake 
-# Whether or not to run with a sanatizer, aka. keep track of allocated and freed
-# memory
-option(SANATIZE "Run with sanatizer" OFF)
-# Option for whether or not to build tests
-option(BUILD_TESTING "Build tests for project" ON)
+FetchContent_MakeAvailable(googletest)
+find_package(GTest REQUIRED)
+include(GoogleTest)
+enable_testing() 
 
 # -----------------------------------------------------
-#   PROJECT SPECICFIC SETTINGS
+#   Targets
 # -----------------------------------------------------
 
-# We only apply these settings if this is the main project
-if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+# Test
+add_executable(GC_test)
 
-    # Tells cmake to generate the test executables that we will ceate in the tests/
-    # folder
-    set(GLOBAL PROPERTY USE_FOLDERS ON)
-    
-    enable_testing()
-    include(CTest)
+add_subdirectory(test)
+add_subdirectory(src) 
 
-    #TODO: add code coverage for build 
-endif()
+# -----------------------------------------------------
+#   Linker and compiler options
+# -----------------------------------------------------
 
-# If the project chould be built with debugging, we want to eable tracking 
-# of memory usage
-if (CMAKE_BUILD_TYPE STREQUAL "Debug") 
-    option(SANATIZE "Run with sanatizer" ON)
-endif()
+target_link_libraries(GC_test
+    GTest::GTest GTest::Main
+)
 
-# Faster alternative to valgrind. Instead of running a separate program around your
-# program like valgrind does 
-if (SANATIZE EQUAL TRUE) 
-    add_compile_options(-fsatitize=address)
-    add_link_options(-fsanitize=address)
-endif()
+target_compile_options(GC_test PRIVATE
+    $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>: -Wall -Wextra -Wconversion> 
+)
 
+target_include_directories(GC_test PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/template/include
+)
 
-# Adding test if the critera are met
-# Note: MODERN_CMAKE_BUILD_TESTING is for giving external projects the ability to test 
-# the code
-if ((CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME OR MODERN_CMAKE_BUILD_TESTING) AND BUILD_TESTING)
-    # Need to be added after testing has been enabled
-    # We add the module containing all the defined tests  
-    add_subdirectory(test)
-endif()
+gtest_discover_tests(GC_test)

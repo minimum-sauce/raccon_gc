@@ -1,0 +1,28 @@
+{
+    "version": 4,
+    "configurePresets": [
+        {
+            "name": "ci-enable-all",
+            "binaryDir": "build",
+            "hidden": true
+        },
+        {
+            "name": "MinGW",
+            "displayName": "MinGW-w64 makefiles",
+            "inherits": ["ci-enable-all"],
+            "generator": "MinGW Makefiles"
+        }, 
+        {
+            "name": "Unix",
+            "displayName": "Unix Makefiles",
+            "inherits": ["ci-enable-all"],
+            "generator": "Unix Makefiles"
+        },
+        {
+            "name": "Ninja",
+            "displayName": "Ninja",
+            "inherits": ["ci-enable-all"],
+            "generator": "Ninja"
+        }
+    ]
+}
